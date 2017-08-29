@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="profile_dimen">85dp</dimen>
+    <dimen name="view_height">60dp</dimen>
+    <dimen name="view_width">300dp</dimen>
+    <dimen name="height_35">50dp</dimen>
+    <dimen name="height_30">45dp</dimen>
+    <dimen name="height_25">40dp</dimen>
+
+    <dimen name="cardListItem_height">320dp</dimen>
+
+    <dimen name="small_textSize">14sp</dimen>
+    <dimen name="normal_textSize">18sp</dimen>
+    <dimen name="text_16">22sp</dimen>
+    <dimen name="text_22">28sp</dimen>
+
+    <dimen name="margin5">10dp</dimen>
+    <dimen name="margin8">16dp</dimen>
+    <dimen name="margin10">20dp</dimen>
+    <dimen name="margin15">25dp</dimen>
+    <dimen name="margin20">30dp</dimen>
+    <dimen name="margin25">35dp</dimen>
+
+</resources>
