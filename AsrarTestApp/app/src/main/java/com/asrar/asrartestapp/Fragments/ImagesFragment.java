@@ -99,6 +99,7 @@ public class ImagesFragment extends Fragment
     protected static final int REQUEST_STORAGE_WRITE_ACCESS_PERMISSION = 102;
     CognitoCachingCredentialsProvider credentialsProvider;
     TransferUtility transferUtility;
+    TransferObserver observer;
 
 
     public ImagesFragment() {
@@ -162,15 +163,21 @@ public class ImagesFragment extends Fragment
                 final TransferObserver[] observer = new TransferObserver[1];
                 Handler handler1 = new Handler();
                 boolean isEmpty = true;
+                final File[] localFiles = files;
                 for(int j = 0 ; j<files.length; j++)
                 {
+                    final int i = j;
+
                     if(!(files[j]== null)) {
+                        final String fileName = localFiles[i].getName();
+                        final File file = localFiles[i];
                         observer[0] = transferUtility.upload(
                                             BUCKET_NAME,
-                                            files[j].getName(),
-                                            files[j]
+                                            fileName,
+                                            file
                                     );
                         isEmpty = false;
+                        files[i]=null;
                     }
                     if(!isEmpty && j == files.length-1)
                     {
