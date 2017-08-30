@@ -3,6 +3,7 @@ package com.asrar.asrartestapp.Fragments;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -13,6 +14,8 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.media.ExifInterface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -97,7 +100,7 @@ public class ImagesFragment extends Fragment
     private static final int REQUEST_SELECT_PICTURE = 0x01;
     protected static final int REQUEST_STORAGE_READ_ACCESS_PERMISSION = 101;
     protected static final int REQUEST_STORAGE_WRITE_ACCESS_PERMISSION = 102;
-    CognitoCachingCredentialsProvider credentialsProvider;
+    CognitoCachingCredentialsProvider credentialsProvider = null;
     TransferUtility transferUtility;
     TransferObserver observer;
 
@@ -114,15 +117,19 @@ public class ImagesFragment extends Fragment
         // Inflate the layout for this fragment
         rootView = inflater.inflate(R.layout.fragment_images, container, false);
         ButterKnife.bind(this , rootView);
+
+        if(isConnectionAvailable(getActivity()))
+        {
+            credentialsProvider = new CognitoCachingCredentialsProvider(
+                    getActivity(), "ap-northeast-1:9ad254c6-85fd-4e97-891f-0928b9b0d657", Regions.AP_NORTHEAST_1 );
+
+            AmazonS3 s3 = new AmazonS3Client(credentialsProvider);
+            transferUtility = new TransferUtility(s3, getActivity());
+        }
+
         for(int j=0 ; j<4 ;j++) {
             files[j]=null;
         }
-
-        credentialsProvider = new CognitoCachingCredentialsProvider(
-                getActivity(), "ap-northeast-1:9ad254c6-85fd-4e97-891f-0928b9b0d657", Regions.AP_NORTHEAST_1 );
-
-        AmazonS3 s3 = new AmazonS3Client(credentialsProvider);
-        transferUtility = new TransferUtility(s3, getActivity());
 
         imgCard.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -160,45 +167,60 @@ public class ImagesFragment extends Fragment
             @Override
             public void onClick(View view) {
 
-                final TransferObserver[] observer = new TransferObserver[1];
-                Handler handler1 = new Handler();
-                boolean isEmpty = true;
-                final File[] localFiles = files;
-                for(int j = 0 ; j<files.length; j++)
+                if(isConnectionAvailable(getActivity()))
                 {
-                    final int i = j;
+                    if(credentialsProvider==null) {
+                        credentialsProvider = new CognitoCachingCredentialsProvider(
+                                getActivity(), "ap-northeast-1:9ad254c6-85fd-4e97-891f-0928b9b0d657", Regions.AP_NORTHEAST_1);
 
-                    if(!(files[j]== null)) {
-                        final String fileName = localFiles[i].getName();
-                        final File file = localFiles[i];
-                        observer[0] = transferUtility.upload(
-                                            BUCKET_NAME,
-                                            fileName,
-                                            file
-                                    );
-                        isEmpty = false;
-                        files[i]=null;
+                        AmazonS3 s3 = new AmazonS3Client(credentialsProvider);
+                        transferUtility = new TransferUtility(s3, getActivity());
                     }
-                    if(!isEmpty && j == files.length-1)
+
+                    final TransferObserver[] observer = new TransferObserver[1];
+                    Handler handler1 = new Handler();
+                    boolean isEmpty = true;
+                    final File[] localFiles = files;
+                    for(int j = 0 ; j<files.length; j++)
                     {
-                        handler1.postDelayed(new Runnable() {
-                            @Override
-                            public void run() {
-                                String SDCard = Environment.getExternalStorageDirectory().toString();
-                                File appDir = new File(SDCard, DIRECTORY_NAME);
-                                deleteNon_EmptyDir(appDir);
-                                imgCard.setImageResource(R.mipmap.bg);
-                                imgCard1.setImageResource(R.mipmap.bg);
-                                imgCard2.setImageResource(R.mipmap.bg);
-                                imgCard3.setImageResource(R.mipmap.bg);
-                                txtSize.setText("");
-                                txtSize1.setText("");
-                                txtSize2.setText("");
-                                txtSize3.setText("");
-                                Toast.makeText(getActivity() , "Images Uploaded Successfully" , Toast.LENGTH_LONG).show();
-                            }
-                        }, 3000);
+                        final int i = j;
+
+                        if(!(files[j]== null)) {
+                            final String fileName = localFiles[i].getName();
+                            final File file = localFiles[i];
+                            observer[0] = transferUtility.upload(
+                                    BUCKET_NAME,
+                                    fileName,
+                                    file
+                            );
+                            isEmpty = false;
+                            files[i]=null;
+                        }
+                        if(!isEmpty && j == files.length-1)
+                        {
+                            handler1.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    String SDCard = Environment.getExternalStorageDirectory().toString();
+                                    File appDir = new File(SDCard, DIRECTORY_NAME);
+                                    deleteNon_EmptyDir(appDir);
+                                    imgCard.setImageResource(R.mipmap.bg);
+                                    imgCard1.setImageResource(R.mipmap.bg);
+                                    imgCard2.setImageResource(R.mipmap.bg);
+                                    imgCard3.setImageResource(R.mipmap.bg);
+                                    txtSize.setText("");
+                                    txtSize1.setText("");
+                                    txtSize2.setText("");
+                                    txtSize3.setText("");
+                                    Toast.makeText(getActivity() , "Images Uploaded Successfully" , Toast.LENGTH_LONG).show();
+                                }
+                            }, 3000);
+                        }
                     }
+                }
+                else
+                {
+                    Toast.makeText(getActivity(), "This app needs internet connection.\nYou are currently not connected to internet.", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -558,6 +580,14 @@ public class ImagesFragment extends Fragment
             }
         }
         return dir.delete();
+    }
+
+    public static boolean isConnectionAvailable(Context ctx)
+    {
+        //boolean bConnection = false;
+        ConnectivityManager connMgr = (ConnectivityManager)ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnected();
     }
 
 }
